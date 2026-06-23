@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORE Dev Hub</title>
+<style>
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --border:    #21262d;
+    --muted:     #8b949e;
+    --text:      #e6edf3;
+    --accent:    #388bfd;
+    --green:     #3fb950;
+    --yellow:    #d29922;
+    --red:       #f85149;
+    --purple:    #bc8cff;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --radius:    6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; color: #fff;
+  }
+  h1 { font-size: 18px; font-weight: 600; letter-spacing: -.3px; }
+  .subtitle { color: var(--muted); font-size: 12px; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  /* ── buttons ── */
+  button {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .85; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* ── token field ── */
+  .token-wrap { display: flex; align-items: center; gap: 6px; }
+  #token-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    outline: none;
+    transition: width .2s, opacity .2s, padding .2s, border-color .15s;
+    width: 0; padding: 0; border-width: 0; opacity: 0; pointer-events: none;
+  }
+  #token-input:focus { border-color: var(--accent); }
+  #token-input::placeholder { color: var(--muted); }
+  #token-input.visible {
+    width: 220px; padding: 6px 10px; border-width: 1px; opacity: 1; pointer-events: auto;
+  }
+  #token-toggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 9px;
+    line-height: 1;
+    transition: border-color .15s, color .15s;
+  }
+  #token-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── tab bar ── */
+  .tab-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    margin-top: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    position: relative;
+    transition: color .15s;
+    opacity: 1;
+  }
+  .tab:hover { color: var(--text); opacity: 1; }
+  .tab.active { color: var(--text); }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+  .tab .tab-icon { font-size: 14px; }
+
+  /* ── tab panels ── */
+  .tab-panel { display: none; padding-top: 20px; }
+  .tab-panel.active { display: block; }
+
+  /* ── grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .col-full { grid-column: 1 / -1; }
+
+  /* ── cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .card-title .icon { font-size: 15px; }
+  .badge {
+    background: var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+  }
+  .badge.alert { background: #3d1a1a; color: var(--red); }
+  .badge.ok    { background: #1a3d1a; color: var(--green); }
+
+  /* ── PR list ── */
+  .pr-list { list-style: none; }
+  .pr-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  .pr-item:last-child { border-bottom: none; }
+  .pr-item:hover { background: #1c2128; }
+  .pr-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .pr-avatar img { width: 100%; height: 100%; }
+  .pr-body { flex: 1; min-width: 0; }
+  .pr-title {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.4;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pr-title:hover { color: var(--accent); }
+  .pr-meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pr-repo {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-size: 10px;
+    background: #1a2840;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .pr-labels { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .label {
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 7px;
+    border: 1px solid transparent;
+  }
+  .pr-checks { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .check-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .check-dot.pass    { background: var(--green); }
+  .check-dot.fail    { background: var(--red); }
+  .check-dot.pending { background: var(--yellow); }
+  .check-dot.none    { background: var(--border); }
+
+  /* ── dependabot ── */
+  .dep-group { border-bottom: 1px solid var(--border); }
+  .dep-group:last-child { border-bottom: none; }
+  .dep-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .dep-group-header:hover { background: #1c2128; }
+  .dep-group-name { font-family: var(--font-mono); color: var(--accent); font-size: 11px; }
+  .dep-group-count { color: var(--muted); font-size: 11px; }
+  .dep-group-body { display: none; }
+  .dep-group-body.open { display: block; }
+  .dep-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px 8px 28px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .dep-item:hover { background: #1c2128; }
+  .dep-name { color: var(--text); font-family: var(--font-mono); }
+  .dep-bump {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+  .dep-bump .arrow { color: var(--border); }
+  .dep-bump .new-ver { color: var(--green); }
+  .dep-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 11px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .dep-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── states ── */
+  .state-box {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .state-box .icon { font-size: 28px; margin-bottom: 8px; }
+  .state-box.error { color: var(--red); }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── age chip ── */
+  .age { font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .age.old   { color: var(--yellow); }
+  .age.stale { color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">C</div>
+    <div>
+      <h1>CORE Dev Hub</h1>
+      <div class="subtitle" id="last-refresh">Not loaded yet</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="token-wrap">
+      <input id="token-input" type="password" placeholder="GitHub token (ghp_…)" />
+      <button id="token-toggle" title="Edit GitHub token" onclick="toggleToken()">🔑</button>
+    </div>
+    <button id="refresh-btn" onclick="load()">Refresh</button>
+  </div>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab active" data-tab="github-prs" onclick="switchTab('github-prs')">
+    <span class="tab-icon">🔀</span> GitHub PRs
+  </button>
+  <!-- add future tabs here -->
+</nav>
+
+<div id="tab-github-prs" class="tab-panel active">
+  <div class="grid" id="github-prs-grid"></div>
+</div>
+
+<!-- ── shared utilities ───────────────────────────────────────────────────── -->
+<script>
+const TABS = {};
+function registerTab(id, loader) { TABS[id] = loader; }
+
+let activeTab = 'github-prs';
+
+function switchTab(id) {
+  activeTab = id;
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === id));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === `tab-${id}`));
+}
+
+function token() {
+  return document.getElementById('token-input').value.trim();
+}
+
+function toggleToken() {
+  const input = document.getElementById('token-input');
+  const isVisible = input.classList.toggle('visible');
+  if (isVisible) { input.focus(); input.select(); }
+}
+
+async function gh(path, params = {}) {
+  const url = new URL(`https://api.github.com${path}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token()}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    }
+  });
+  if (!res.ok) throw new Error(`GitHub ${res.status}: ${url}`);
+  return res.json();
+}
+
+function ageLabel(dateStr) {
+  const days = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+  const cls  = days >= 14 ? 'stale' : days >= 7 ? 'old' : '';
+  const label = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`;
+  return `<span class="age ${cls}">${label}</span>`;
+}
+
+function labelChip(label) {
+  const color = label.color ? `#${label.color}` : '#888';
+  const bg    = color + '22';
+  return `<span class="label" style="color:${color};border-color:${color}44;background:${bg}">${label.name}</span>`;
+}
+
+function checkDot(status) {
+  const map = { success: 'pass', failure: 'fail', error: 'fail', pending: 'pending' };
+  return `<span class="check-dot ${map[status] || 'none'}" title="${status || 'no checks'}"></span>`;
+}
+
+function loadingCard(id, icon, title) {
+  document.getElementById(id).innerHTML = `
+    <div class="card-header">
+      <div class="card-title"><span class="icon">${icon}</span>${title}</div>
+    </div>
+    <div class="state-box"><div class="spinner"></div>Loading…</div>`;
+}
+
+function errorCard(id, icon, title, err) {
+  document.getElementById(id).innerHTML = `
+    <div class="card-header">
+      <div class="card-title"><span class="icon">${icon}</span>${title}</div>
+    </div>
+    <div class="state-box error"><div class="icon">⚠️</div>${err.message}</div>`;
+}
+
+function showNoToken() {
+  const panel = document.querySelector('.tab-panel.active');
+  if (panel) panel.innerHTML = `
+    <div style="display:flex;justify-content:center;align-items:center;padding:80px 0">
+      <div class="state-box" style="max-width:320px">
+        <div class="icon">🔑</div>
+        <div style="font-size:14px;color:var(--text);margin-bottom:6px">No GitHub token set</div>
+        <div style="font-size:12px">Click the 🔑 button in the top right, paste your token, then hit Refresh.</div>
+      </div>
+    </div>`;
+  const input = document.getElementById('token-input');
+  if (!input.classList.contains('visible')) {
+    input.classList.add('visible');
+    input.focus();
+  }
+}
+
+function load() {
+  if (!token()) { showNoToken(); return; }
+  if (TABS[activeTab]) TABS[activeTab]();
+}
+</script>
+
+<!-- ── tabs ───────────────────────────────────────────────────────────────── -->
+<script src="tabs/github-prs.js"></script>
+
+<!-- ── init ──────────────────────────────────────────────────────────────── -->
+<script>
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('gh_token');
+  if (saved) document.getElementById('token-input').value = saved;
+  load();
+});
+
+document.getElementById('token-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && token()) load();
+});
+</script>
+
+</body>
+</html>
