@@ -27,7 +27,7 @@ sudo ln -s ~/Projects/core-scripts/core-sync-projects.sh /usr/local/bin/core-syn
 
 ### Shell completion for `core-local-deploy`
 
-Add the following to your `~/.bashrc` or `~/.zshrc` so tab-completion works for corelet names and `--teardown`:
+Add the following to your `~/.bashrc` or `~/.zshrc` so tab-completion works for corelet names and flags:
 
 ```bash
 source /usr/local/bin/core-local-deploy
@@ -66,6 +66,15 @@ core-local-deploy <corelet-name> --redeploy --tail-logs
 
 # Tear down all services
 core-local-deploy <corelet-name> --teardown
+
+# Tear down all services and remove Docker volumes
+core-local-deploy <corelet-name> --teardown-v
+
+# Restart only dev servers (UI and API)
+core-local-deploy <corelet-name> --restart-dev
+
+# Restart only dev servers (UI and API) and tail all dev-server logs (background mode only; Ctrl-C to stop tailing)
+core-local-deploy <corelet-name> --restart-dev --tail-logs
 ```
 
 ### Example
@@ -75,6 +84,9 @@ core-local-deploy corelet-ztac
 core-local-deploy corelet-ztac --tail-logs
 core-local-deploy corelet-ztac --redeploy --tail-logs
 core-local-deploy corelet-ztac --teardown
+core-local-deploy corelet-ztac --teardown-v
+core-local-deploy corelet-ztac --restart-dev
+core-local-deploy corelet-ztac --restart-dev --tail-logs
 ```
 
 ### What it does
@@ -88,7 +100,7 @@ The script validates that the env file can actually be sourced before starting a
 
 In background mode, the script waits 2 seconds after all services are started and checks that each process is still alive. If any exited immediately, it reports which ones failed and points to their log files.
 
-Teardown kills dev server processes, removes log files, and runs `docker compose down`. `--redeploy` runs teardown then immediately starts everything again.
+`--teardown` kills dev server processes, removes log files, and runs `docker compose down`. `--teardown-v` also removes Docker volumes. `--redeploy` runs teardown (Docker volumes are not destroyed) then immediately starts everything again.
 
 If a supported terminal emulator is available (kitty, wezterm, gnome-terminal, x-terminal-emulator, macOS Terminal), each service opens in its own window instead of running in the background.
 

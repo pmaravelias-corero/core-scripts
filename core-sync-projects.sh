@@ -15,6 +15,8 @@ PROJECTS=(
   corelet-ta
   corelet-ztac
   corelet-auth-mgmt
+  corelet-user-settings
+  corelet-tenant-provisioning
   corelet-common
   corelet-chassis
 )

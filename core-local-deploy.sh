@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # core-local-deploy — start a CORElet project locally
-# Usage: core-local-deploy <corelet-name> [--teardown|--redeploy] [--tail-logs]
+# Usage: core-local-deploy <corelet-name> [--teardown|--teardown-v|--redeploy|--restart-dev] [--tail-logs]
 #
 # Install:
 #   chmod +x ~/Projects/core-scripts/core-local-deploy.sh
@@ -23,7 +23,7 @@ if [[ "${BASH_SOURCE[0]:-}" != "$0" ]] || [[ "${ZSH_EVAL_CONTEXT:-}" == *:file* 
   if [[ -n "${ZSH_VERSION:-}" ]]; then
     _core_local_deploy_complete() {
       if (( CURRENT == 2 )); then compadd "$@" -- $CORELETS
-      elif (( CURRENT == 3 )); then compadd "$@" -- --teardown --redeploy --tail-logs
+      elif (( CURRENT == 3 )); then compadd "$@" -- --teardown --teardown-v --redeploy --restart-dev --tail-logs
       elif (( CURRENT == 4 )); then compadd "$@" -- --tail-logs
       fi
     }
@@ -32,7 +32,7 @@ if [[ "${BASH_SOURCE[0]:-}" != "$0" ]] || [[ "${ZSH_EVAL_CONTEXT:-}" == *:file* 
     _core_local_deploy_complete() {
       local cur="${COMP_WORDS[COMP_CWORD]}"
       if [[ COMP_CWORD -eq 1 ]]; then COMPREPLY=( $(compgen -W "${CORELETS[*]}" -- "$cur") )
-      elif [[ COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "--teardown --redeploy --tail-logs" -- "$cur") )
+      elif [[ COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "--teardown --teardown-v --redeploy --restart-dev --tail-logs" -- "$cur") )
       elif [[ COMP_CWORD -eq 3 ]]; then COMPREPLY=( $(compgen -W "--tail-logs" -- "$cur") )
       fi
     }
@@ -54,17 +54,21 @@ ok()   { echo "✅  $*"; }
 # ── args & roots ──────────────────────────────────────────────────────────────
 
 CORELET="${1:-}"
-[[ -n "$CORELET" ]] || die "Usage: core-local-deploy <corelet-name> [--teardown|--redeploy] [--tail-logs]  (must match the repo name)"
+[[ -n "$CORELET" ]] || die "Usage: core-local-deploy <corelet-name> [--teardown|--teardown-v|--redeploy|--restart-dev] [--tail-logs]  (must match the repo name)"
 
 TEARDOWN=false
+TEARDOWN_V=false
 REDEPLOY=false
+RESTART_DEV=false
 TAIL_LOGS=false
 
 for _arg in "${@:2}"; do
   case "$_arg" in
-    --teardown)  TEARDOWN=true ;;
-    --redeploy)  REDEPLOY=true ;;
-    --tail-logs) TAIL_LOGS=true ;;
+    --teardown)    TEARDOWN=true ;;
+    --teardown-v)  TEARDOWN_V=true ;;
+    --redeploy)    REDEPLOY=true ;;
+    --restart-dev) RESTART_DEV=true ;;
+    --tail-logs)   TAIL_LOGS=true ;;
     *) die "Unknown flag: $_arg" ;;
   esac
 done
@@ -96,7 +100,11 @@ do_teardown() {
   echo
   info "Bringing down Docker services…"
   pushd "$CORELET_ROOT" > /dev/null
-  docker compose --env-file .env.local.docker -f docker-compose.dev.yml down
+  if $TEARDOWN_V; then
+    docker compose --env-file .env.local.docker -f docker-compose.dev.yml down -v
+  else
+    docker compose --env-file .env.local.docker -f docker-compose.dev.yml down
+  fi
   popd > /dev/null
   ok "Docker services down"
 
@@ -104,7 +112,7 @@ do_teardown() {
   ok "Teardown complete for $CORELET."
 }
 
-if $TEARDOWN; then
+if $TEARDOWN || $TEARDOWN_V; then
   do_teardown
   exit 0
 fi
@@ -114,6 +122,31 @@ if $REDEPLOY; then
   echo
   info "Redeploying $CORELET…"
   echo
+fi
+
+do_restart_dev() {
+  info "Restarting dev servers for $CORELET…"
+  echo
+
+  info "Stopping dev server processes…"
+  pids=$(pgrep -f "$IMAGES_DIR" 2>/dev/null || true)
+  if [[ -n "$pids" ]]; then
+    echo "$pids" | xargs kill 2>/dev/null \
+      && ok "Dev server processes killed" \
+      || info "Some processes could not be killed (may have already exited)"
+  else
+    info "No dev server processes found under $IMAGES_DIR"
+  fi
+
+  rm -f /tmp/core-local-deploy/${CORELET}-*.log
+  ok "Log files cleared"
+  echo
+}
+
+if $RESTART_DEV; then
+  do_restart_dev
+  # fall through — sanity checks + open_term calls run as normal,
+  # but Docker compose is skipped (see guard below)
 fi
 
 # ── sanity checks ─────────────────────────────────────────────────────────────
@@ -138,12 +171,14 @@ done < <(find "$IMAGES_DIR" -maxdepth 1 -type d -name "${CORELET}-*" -print0 | s
 
 # ── step 1: docker compose ────────────────────────────────────────────────────
 
-info "Starting Docker services…"
-pushd "$CORELET_ROOT" > /dev/null
-docker compose --env-file .env.local.docker -f docker-compose.dev.yml up -d
-popd > /dev/null
-ok "Docker services up"
-echo
+if ! $RESTART_DEV; then
+  info "Starting Docker services…"
+  pushd "$CORELET_ROOT" > /dev/null
+  docker compose --env-file .env.local.docker -f docker-compose.dev.yml up -d
+  popd > /dev/null
+  ok "Docker services up"
+  echo
+fi
 
 # ── step 2: terminal launcher ─────────────────────────────────────────────────
 
@@ -241,8 +276,10 @@ if (( ${#BG_PIDS[@]} > 0 )); then
   fi
 fi
 
-echo "   Tear down : core-local-deploy $CORELET --teardown"
-echo "   Redeploy  : core-local-deploy $CORELET --redeploy"
+echo "   Tear down      : core-local-deploy $CORELET --teardown"
+echo "              -v  : core-local-deploy $CORELET --teardown-v"
+echo "   Redeploy       : core-local-deploy $CORELET --redeploy"
+echo "   Restart dev    : core-local-deploy $CORELET --restart-dev"
 
 # ── step 7: tail logs ─────────────────────────────────────────────────────────
 
